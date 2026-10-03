@@ -2,7 +2,7 @@
 
 **Reduced-order terramechanics and route optimization for adaptive rover wheels on heterogeneous terrain**
 
-Research portfolio project by **Jeonghyun “Jane” Park**. The project develops a source-informed computational framework for asking a specific engineering question:
+The project develops a source-informed computational framework for asking a specific engineering question:
 
 > **When can changing wheel compliance along a route provide a mobility advantage over the best globally fixed compliance state?**
 
