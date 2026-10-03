@@ -1,0 +1,8 @@
+cff-version: 1.2.0
+message: "If you reference this research portfolio, please cite the author and repository."
+title: "Variable-Compliance Rover Mobility on Heterogeneous Terrain"
+type: software
+authors:
+  - family-names: Park
+    given-names: Jeonghyun Jane
+date-released: 2026-09-07

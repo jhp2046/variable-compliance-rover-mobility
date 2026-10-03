@@ -1,0 +1,435 @@
+
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb,booktabs,longtable,array,enumitem,hyperref,siunitx,microtype}
+\usepackage[numbers,sort&compress]{natbib}
+\hypersetup{colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue}
+
+\title{Technical Formulation and Parameter Justification for the Variable-Compliance Rover Mobility Model}
+\author{Jane Park}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Purpose}
+
+This document records the mathematical formulation used in the variable-compliance rover mobility model and identifies the justification and provenance of each term. It is intended to accompany the research report and source code.
+
+\section{State variable}
+
+The wheel state is represented by
+\begin{equation}
+s\in[0,1].
+\end{equation}
+
+Recovered source anchor states are
+\begin{equation}
+s_k=
+\{0,\;0.149537,\;0.422427,\;0.572765,\;0.746899,\;0.916081,\;1\}.
+\end{equation}
+
+The continuous constitutive response is
+\begin{equation}
+D=D(F,s),
+\end{equation}
+constructed from Lee et al.\ force--deformation data \cite{Lee2024}.
+
+\paragraph{Justification.}
+A continuous state avoids imposing an artificial binary soft/stiff wheel and permits optimization over the experimentally represented compliance range.
+
+\section{Normal load}
+
+For the present single-wheel-equivalent calibration,
+\begin{equation}
+F_N=W=mg.
+\end{equation}
+
+Using
+\begin{equation}
+m=5.3~\mathrm{kg},\qquad g=9.81~\mathrm{m\,s^{-2}},
+\end{equation}
+gives
+\begin{equation}
+F_N=51.993~\mathrm{N}.
+\end{equation}
+
+For a general $N_w$-wheel rover under a static equal-load approximation,
+\begin{equation}
+F_{N,k}\approx\frac{m_{\mathrm{rover}}g}{N_w}.
+\end{equation}
+
+\paragraph{Justification.}
+The current fixed value preserves consistency with the Lee small-wheel data. A general rover implementation should use per-wheel load rather than total rover weight.
+
+\section{Wheel geometry}
+
+The current calibration uses
+\begin{equation}
+R=0.140~\mathrm{m},
+\qquad
+b_w=0.040~\mathrm{m}.
+\end{equation}
+
+\paragraph{Justification.}
+These dimensions are tied to the source wheel configuration used to define $D(F,s)$. They are not yet free wheel-family parameters.
+
+\section{Contact geometry}
+
+For radial deformation $D$,
+\begin{equation}
+L_c=2\sqrt{2RD-D^2}.
+\end{equation}
+
+The reduced contact area is
+\begin{equation}
+A=b_wL_c,
+\end{equation}
+and the effective Bekker width is
+\begin{equation}
+b=\min(b_w,L_c).
+\end{equation}
+
+Average pressure is
+\begin{equation}
+p=\frac{F_N}{A}.
+\end{equation}
+
+\paragraph{Justification.}
+This reduced geometry allows the Lee-derived deformation response to modify the contact patch used by the terramechanics calculation. It is an approximation and does not represent the full pressure distribution.
+
+\section{Pressure--sinkage relation}
+
+For deformable terrain,
+\begin{equation}
+\sigma=
+\left(
+\frac{k_c}{b}+k_\phi
+\right)y^n,
+\end{equation}
+following classical Bekker/Wong terramechanics \cite{Bekker1969,Wong2010}.
+
+Using the average pressure $p$,
+\begin{equation}
+z=
+\left[
+\frac{p}
+{k_c/b+k_\phi}
+\right]^{1/n}.
+\end{equation}
+
+\paragraph{Parameters.}
+$k_c$, $k_\phi$, and $n$ are terrain-specific pressure--sinkage parameters.
+
+\paragraph{Justification.}
+These parameters are terrain properties rather than wheel fitting coefficients. They must be traced to their literature or inherited data source.
+
+\section{Compaction resistance}
+
+The reduced compaction resistance is
+\begin{equation}
+R_c=
+b_w
+\left(
+\frac{k_c}{b}+k_\phi
+\right)
+\frac{z^{n+1}}{n+1}.
+\end{equation}
+
+\paragraph{Justification.}
+This term is a reduced work-per-distance representation of soil compaction. It provides a state-dependent mobility cost because compliance changes contact pressure and sinkage.
+
+\section{Traction feasibility}
+
+Available traction is bounded by
+\begin{equation}
+F_{\max}=cA+F_N\tan\phi,
+\end{equation}
+where $c$ is cohesion and $\phi$ is internal friction angle.
+
+The state is rejected if
+\begin{equation}
+F_{\mathrm{req}}>F_{\max}.
+\end{equation}
+
+\paragraph{Justification.}
+This is used only as a feasibility bound. It is not interpreted as a calibrated slip prediction. A Janosi--Hanamoto slip-energy model was not added because additional wheel-specific calibration would be required.
+
+\section{Slope}
+
+For a directed graph edge $i\rightarrow j$ with physical length $L_{ij}$,
+\begin{equation}
+\theta_{ij}
+=
+\tan^{-1}
+\left(
+\frac{z_j-z_i}{L_{ij}}
+\right).
+\end{equation}
+
+The gravitational contribution is
+\begin{equation}
+F_g=W\sin\theta_{ij}.
+\end{equation}
+
+\paragraph{Justification.}
+Signed slope is computed directly from elevation and physical edge length. An uphill regression reproduced the expected gravitational energy increment $W\Delta z$.
+
+\section{Positive-propulsion objective}
+
+The raw mobility demand is converted to positive propulsion demand as
+\begin{equation}
+F_{\mathrm{prop}}=\max(0,F_{\mathrm{raw}}).
+\end{equation}
+
+\paragraph{Justification.}
+The model does not assign regenerative credit or braking losses. Therefore downhill results must be interpreted as positive propulsion demand only.
+
+\section{Rolling-loss sensitivity term}
+
+The reduced state-dependent rolling term is
+\begin{equation}
+R_{\mathrm{roll}}(s)
+=
+W
+\left[
+C_{rr,\mathrm{ref}}+\lambda h(s)
+\right].
+\end{equation}
+
+The model retains four alternative $h(s)$ forms:
+\begin{enumerate}[label=(\arabic*)]
+\item linear state,
+\item square-root loading work,
+\item loading work,
+\item deflection.
+\end{enumerate}
+
+The tested sensitivity set uses
+\begin{equation}
+C_{rr,\mathrm{ref}}
+\in\{0.0005,0.001,0.002,0.005\},
+\end{equation}
+and
+\begin{equation}
+\lambda\in\{0.003,0.01,0.02\}.
+\end{equation}
+
+\paragraph{Justification.}
+Lee's quasi-static deformation data do not calibrate cyclic rolling dissipation. The rolling term is therefore treated as model-form and amplitude sensitivity rather than a measured law.
+
+\section{Terrain cost density}
+
+For each terrain $T$, slope $\theta$, and wheel state $s$, the model evaluates
+\begin{equation}
+c(T,\theta,s)
+\end{equation}
+in units of positive propulsion work per distance.
+
+For deformable terrain this includes the reduced soil-compaction term, rolling term, signed gravitational contribution, and traction feasibility.
+
+\section{Graph edge length}
+
+For physical grid spacing $\Delta x$,
+\begin{equation}
+L_{ij}=
+\begin{cases}
+\Delta x, & \text{cardinal edge},\\
+\sqrt{2}\Delta x, & \text{diagonal edge}.
+\end{cases}
+\end{equation}
+
+\paragraph{Justification.}
+$\Delta x$ is the spatial resolution of the map. It is not fitted. A refinement audit demonstrated first-order convergence of adaptive terrain-interface error.
+
+\section{Edge cost}
+
+For an edge connecting terrain endpoints $i$ and $j$,
+\begin{equation}
+C_{ij}(s)
+=
+L_{ij}
+\frac{
+c_i(s,\theta_{ij})+
+c_j(s,\theta_{ij})
+}{2}.
+\end{equation}
+
+\paragraph{Justification.}
+Endpoint averaging replaces destination-only cost assignment and reduces directional bookkeeping bias at terrain boundaries.
+
+\section{Grid connectivity}
+
+The final 2-D formulation uses 8-neighbor connectivity.
+
+\paragraph{Justification.}
+A 4-neighbor grid produced a resolution-independent 41.42\% path-length error for \SI{45}{\degree} travel. The 8-neighbor formulation removes that error at \SI{45}{\degree}. Residual maximum angular path-length error is approximately 8.24\% near \SI{22.5}{\degree}.
+
+\section{Obstacle feasibility}
+
+For an explicitly defined directed obstacle edge of tested height $h$,
+\begin{equation}
+s_e\ge s_{\min}(h).
+\end{equation}
+
+\paragraph{Justification.}
+Only exact Lee-tested heights are supported. The obstacle data define passability, not energy.
+
+\section{Fixed optimization}
+
+For a fixed state $s$ and path $P$,
+\begin{equation}
+J(P,s)
+=
+\sum_{e\in P}C_e(s).
+\end{equation}
+
+The globally optimal fixed solution is
+\begin{equation}
+J_{\mathrm{fixed}}^*
+=
+\min_s
+\min_P
+J(P,s).
+\end{equation}
+
+\paragraph{Justification.}
+This establishes a strong baseline. The adaptive wheel is not compared against an arbitrarily selected fixed compliance.
+
+\section{Adaptive optimization}
+
+For an adaptive state sequence $\{s_e\}$,
+\begin{equation}
+J_{\mathrm{adaptive}}^*
+=
+\min_{P,\{s_e\}}
+\sum_{e\in P}
+C_e(s_e).
+\end{equation}
+
+Transition energy is currently
+\begin{equation}
+E_{\mathrm{switch}}=0.
+\end{equation}
+
+\paragraph{Justification.}
+Actuation energy and transition distance are not sufficiently known. Setting transition energy to zero deliberately defines an ideal mobility benefit rather than inventing an unsupported penalty.
+
+\section{Ideal mobility benefit}
+
+Define
+\begin{equation}
+\rho
+=
+\frac{J_{\mathrm{adaptive}}^*}
+{J_{\mathrm{fixed}}^*}.
+\end{equation}
+
+Then
+\begin{equation}
+\boxed{
+B_{\mathrm{ideal}}
+=
+1-\rho
+=
+\frac{
+J_{\mathrm{fixed}}^*
+-
+J_{\mathrm{adaptive}}^*
+}{
+J_{\mathrm{fixed}}^*
+}
+}.
+\end{equation}
+
+Since the adaptive optimizer can reproduce any fixed state,
+\begin{equation}
+J_{\mathrm{adaptive}}^*
+\le
+J_{\mathrm{fixed}}^*,
+\end{equation}
+and therefore
+\begin{equation}
+B_{\mathrm{ideal}}\ge0.
+\end{equation}
+
+\section{Benefit decomposition}
+
+Let $J_{a|f}$ denote adaptive state selection constrained to the best fixed route. Then
+\begin{equation}
+\Delta J_{\mathrm{state}}
+=
+J_f-J_{a|f},
+\end{equation}
+\begin{equation}
+\Delta J_{\mathrm{route}}
+=
+J_{a|f}-J_a,
+\end{equation}
+and
+\begin{equation}
+\Delta J_{\mathrm{total}}
+=
+\Delta J_{\mathrm{state}}
++
+\Delta J_{\mathrm{route}}.
+\end{equation}
+
+\paragraph{Justification.}
+This separates savings caused by changing wheel state from savings caused by selecting a different route.
+
+\section{Parameter/provenance table}
+
+\begin{longtable}{p{0.17\linewidth}p{0.17\linewidth}p{0.22\linewidth}p{0.36\linewidth}}
+\toprule
+Quantity & Current value/range & Classification & Justification / status\\
+\midrule
+$m$ & 5.3 kg & source-matched nominal & Lee small-wheel anchored; not universal rover mass.\\
+$F_N$ & 51.993 N & derived & $mg$ for current calibration; general rover should use per-wheel load.\\
+$R$ & 0.140 m & source geometry & Not yet a free wheel-family parameter.\\
+$b_w$ & 0.040 m & source geometry & Same limitation as $R$.\\
+$s$ & 0--1 & source-derived & Recovered continuous compliance coordinate.\\
+$D(F,s)$ & recovered surface & source-derived & Main wheel constitutive input.\\
+$k_c,k_\phi,n$ & terrain-specific & literature/inherited & Pressure--sinkage properties.\\
+$c,\phi$ & terrain-specific & literature/inherited & Traction-feasibility properties.\\
+$C_{rr,\mathrm{ref}}$ & swept & sensitivity & Not a measured Lee-wheel value.\\
+$\lambda$ & swept & sensitivity & State-dependent rolling-loss amplitude.\\
+$h(s)$ & four forms & model-form sensitivity & Explicit uncertainty treatment.\\
+$\Delta x$ & map-dependent & physical/numerical & Physical map resolution; convergence audited.\\
+Connectivity & 8-neighbor & numerical choice & Selected after quantified Manhattan bias.\\
+$E_{\mathrm{switch}}$ & 0 & idealization & Transition cost unknown.\\
+Obstacle energy & none & excluded & Data support feasibility only.\\
+Downhill regen & none & reduced objective & Negative propulsion clipped to zero.\\
+\bottomrule
+\end{longtable}
+
+\section{Generality boundary}
+
+The graph and optimization formulation can accept different wheel loads, geometries, terrain maps, and route configurations in principle. The current physical calibration cannot yet support arbitrary wheel geometry.
+
+A broader wheel-family model requires either:
+\begin{enumerate}[label=(\arabic*)]
+\item experimental data at multiple wheel sizes and loads;
+\item validated FEA across geometry/load space; or
+\item a mechanics-based dimensionless scaling law.
+\end{enumerate}
+
+Until such validation is available, changes in $R$ or $b_w$ should not be interpreted as validated predictions.
+
+\begin{thebibliography}{9}
+\bibitem{Lee2024}
+J.-Y. Lee et al., ``Variable-stiffness--morphing wheel inspired by the surface tension of a liquid droplet,'' \emph{Science Robotics}, vol. 9, no. 93, eadl2067, 2024. doi: 10.1126/scirobotics.adl2067.
+
+\bibitem{Bekker1969}
+M. G. Bekker, \emph{Introduction to Terrain-Vehicle Systems}. University of Michigan Press, 1969.
+
+\bibitem{Wong2001}
+J. Y. Wong, \emph{Theory of Ground Vehicles}, 3rd ed. John Wiley \& Sons, 2001.
+
+\bibitem{Wong2010}
+J. Y. Wong, \emph{Terramechanics and Off-Road Vehicle Engineering: Terrain Behaviour, Off-Road Vehicle Performance and Design}, 2nd ed. Elsevier, 2010.
+
+\bibitem{Shen2024}
+Y. Shen, M. Zou, H. Cao, D. Pan, B. Yuan, and L. He, ``Current-Based Analysis and Validation of a Wheel--Soil Interaction Model for the Trafficability of a Planetary Rover,'' \emph{Aerospace}, vol. 11, no. 11, p. 892, 2024. doi: 10.3390/aerospace11110892.
+\end{thebibliography}
+\end{document}
