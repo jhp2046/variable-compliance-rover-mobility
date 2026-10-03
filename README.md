@@ -60,19 +60,13 @@ where `J*_fixed` is the globally optimized fixed-compliance route cost and `J*_a
 
 ### State adaptation versus rerouting
 
-![State adaptation and rerouting contributions](results/figure_state_vs_route.png)
-
 For the corrected representative heterogeneous map, the ideal benefit remained positive across all four rolling-loss sensitivity forms. Most of the modeled advantage came from changing compliance state along the route; rerouting was a smaller secondary contribution.
 
 ### Spatial organization matters
 
-![Hard/loose terrain ensemble](results/figure_ensemble_median_hard_loose.png)
-
 The same terrain composition can produce different outcomes depending on spatial arrangement. In the controlled hard-ground / JLU Mars-1 loose ensemble, clustered and random layouts did not show a single monotonic ordering across all terrain fractions.
 
 ### Obstacle feasibility is treated as a constraint, not invented energy
-
-![Obstacle feasibility thresholds](results/figure_obstacle_thresholds.png)
 
 Only exact experimentally represented obstacle heights are used. Obstacle measurements define the minimum admissible compliance state; they are not converted into an unsupported impact- or obstacle-energy penalty.
 
